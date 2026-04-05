@@ -2,74 +2,134 @@
 
 **Highlight. Right-click. Send anywhere.**
 
-SLINGSHOT is an open-source browser extension that lets you highlight text on any webpage and send it to configurable destinations via the right-click context menu.
+SLINGSHOT is an open-source browser extension that lets you highlight text on any webpage and route it to configurable destinations via the right-click context menu. Unlike webhook-only extensions, SLINGSHOT is a **destination router** with pluggable transport types and built-in cybersecurity tooling.
 
-Unlike webhook-only extensions, SLINGSHOT is a **destination router** — it supports multiple transport types out of the box: webhooks, REST APIs, enhanced clipboard, email, and local files. Configure named destinations in settings, and they appear in your context menu ready to fire.
+## Why SLINGSHOT?
+
+Existing extensions like Send To WebHook and Webhook Manager only support webhooks — meaning you need middleware (Zapier, n8n, Make) to get data where it actually needs to go. SLINGSHOT cuts out the middleman with native support for multiple destination types, multi-destination dispatch, and built-in IOC lookup and defanging for security professionals.
+
+**No backend. No accounts. No data leaves your browser except to destinations you configure.**
 
 ## Features
 
-- **Multi-destination** — Configure as many destinations as you need
-- **Pluggable transports** — Webhook, REST API, Clipboard+, Email, Local File (more coming)
-- **Context menu integration** — Right-click highlighted text to send
-- **Rich payload** — Sends text + source URL, page title, timestamp
-- **Template support** — Customize payloads with `{{text}}`, `{{url}}`, `{{title}}` placeholders
-- **Sync across devices** — Destinations sync via Chrome storage
-- **Test before you ship** — Test button for every destination in settings
+### Core
+- **Multi-destination routing** — Configure named destinations, select one or many from the context menu
+- **Pluggable transports** — Webhook, REST API, Clipboard+, Email, Local File
+- **Rich payloads** — Sends highlighted text + source URL, page title, timestamp
+- **Template engine** — Customize payloads with `{{text}}`, `{{url}}`, `{{title}}`, `{{domain}}`, `{{timestamp}}` placeholders
+- **Multi-select dispatch** — Send to multiple destinations in a single action
+- **Sync across devices** — Destination configs sync via Chrome storage
 - **Import/Export** — Share destination configs as JSON
+
+### Cybersecurity
+- **IOC Defanging** — One-click "Make Safe" transform for threat intel sharing:
+  - `1.2.3.4` → `1.2.3[.]4`
+  - `evil.com` → `evil[.]com`
+  - `badguy@evil.com` → `badguy@evil[.]com`
+  - `https://evil.com` → `hxxps://evil[.]com`
+- **IOC Lookup** — Right-click any IP, domain, hash, URL, or email to query reputation sources:
+  - **Built-in:** WHOIS/RDAP, VirusTotal, AbuseIPDB, Shodan, URLScan.io, MalwareBazaar, IPInfo
+  - **Custom:** Configure any REST API (XSOAR, MISP, TheHive, internal platforms) with JSONPath response mapping
+- **In-page results overlay** — Lookup results appear inline without leaving the page, with "Copy as Defanged" and "Send to →" actions
+
+### Transform Pipeline
+- **Simple mode (default):** Trim whitespace, strip HTML, normalize line breaks, defang IOCs toggle
+- **Advanced mode (per-destination):** Regex extract, find/replace, case transform, truncate, prepend/append — composable pipeline steps
+
+## Context Menu
+
+```
+Slingshot →
+  ☐ My Webhook
+  ☐ Slack Channel
+  ☐ Threat Intel API
+  ───────────
+  🔍 Lookup
+  ───────────
+  Report a Bug
+```
 
 ## Quick Start
 
-1. Install SLINGSHOT from the Chrome Web Store *(coming soon)*
-2. Click the extension icon → Settings
-3. Add a destination (e.g., a webhook URL)
+1. Install SLINGSHOT from the [Chrome Web Store](#) *(coming soon)*
+2. Click the extension icon → **Settings**
+3. Add a destination (e.g., a webhook URL, REST API endpoint)
 4. Highlight text on any page → Right-click → **Slingshot → [Your Destination]**
 
 ## Supported Destinations
 
-| Type | Status |
-|------|--------|
-| Webhook (HTTP POST) | v1 |
-| REST API (authenticated) | v1 |
-| Clipboard+ (append w/ metadata) | v1 |
-| Email (mailto:) | v1 |
-| Local File (via native messaging) | v1.1 |
-| Slack | Planned |
-| Discord | Planned |
-| Obsidian | Planned |
-| Notion | Planned |
+| Type | Description | Status |
+|------|-------------|--------|
+| Webhook | HTTP POST to any URL | v1 |
+| REST API | Authenticated API calls (Bearer, Basic, API Key) | v1 |
+| Clipboard+ | Enhanced clipboard with metadata | v1 |
+| Email | mailto: with templated subject/body | v1 |
+| Local File | Append via native messaging host | v1.1 |
+| Slack | Post to channel/DM | Planned |
+| Discord | Post via webhook | Planned |
+| Obsidian | Append to note via Local REST API | Planned |
+| Notion | Append to page/database | Planned |
 
 ## Development
 
 ```bash
-# Clone
 git clone https://github.com/rookdynamics/SLINGSHOT.git
 cd SLINGSHOT
-
-# Install dependencies
 npm install
-
-# Dev mode (Chrome)
-npm run dev
-
-# Build for production
-npm run build
+npm run dev       # Dev mode with hot reload (Chrome)
+npm run build     # Production build
+npm run test      # Run tests
 ```
 
 ## Tech Stack
 
-- TypeScript
-- WXT (Web Extension Tooling)
-- React + Tailwind CSS
-- Vite
-- Vitest + Playwright
+- **TypeScript** — Strict mode, no `any`
+- **WXT** — Web Extension Tooling (Manifest V3, Chrome + Firefox)
+- **React 18** — Options page and popup UI
+- **Tailwind CSS** — Utility-first styling
+- **Vitest** — Unit and integration testing
 
-## License
+## Project Structure
 
-MIT — see [LICENSE](LICENSE)
+```
+src/
+├── background/          # Service worker, context menu, dispatch
+├── content/             # Text capture, lookup overlay
+├── popup/               # Extension popup UI
+├── options/             # Settings page UI
+├── components/          # Shared React components
+├── lib/
+│   ├── transports/      # Webhook, REST API, clipboard, email handlers
+│   ├── lookup/          # IOC detection, lookup engine, source adapters
+│   └── transforms/      # Basic, defang, advanced pipeline
+└── types/               # TypeScript interfaces and enums
+```
+
+## Build Phases
+
+Development is organized into phased prompts in [`docs/prompts/`](docs/prompts/). Each phase is self-contained, touches ≤5 files, and has explicit acceptance criteria. See [`docs/SPEC.md`](docs/SPEC.md) for the full project specification.
+
+| Phase | Focus |
+|-------|-------|
+| 1A/1B | Project scaffold + type definitions |
+| 2A/2B | Storage, payload, transform pipeline |
+| 3A/3B | Transport handlers + IOC detection |
+| 4A/4B | Lookup sources + engine + overlay |
+| 5A/5B | Context menu, service worker, content script |
+| 6A/6B | Options UI (destinations + lookup settings) |
+| 7A | Popup UI |
+| 8A | Testing |
+| 9A | Polish + release |
 
 ## Contributing
 
-Contributions welcome. See [docs/SPEC.md](docs/SPEC.md) for the full project specification.
+Contributions welcome. Please read:
+- [`docs/SPEC.md`](docs/SPEC.md) — Project specification
+- [`docs/DIRECTIVES.md`](docs/DIRECTIVES.md) — Agent/developer directives for code quality
+
+## License
+
+[MIT](LICENSE) — Copyright (c) 2026 Rook Dynamics
 
 ---
 

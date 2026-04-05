@@ -120,59 +120,30 @@ Each destination is a card/row with:
 - Parent menu item: **"Slingshot →"**
 - Child items: one per enabled destination, by name
 - If only one destination: skip submenu, show directly as "Slingshot to [Name]"
+- Multi-select: users can select multiple destinations per dispatch (see Design Decisions)
 - Grayed out if no text selected
 - Optional keyboard shortcut per destination
+- **Separator line**
+- **"Report a Bug"** — always present at bottom of the submenu
 
-## Tech Stack
+### Report a Bug (Context Menu)
 
-- **Language:** TypeScript
-- **Build:** Vite + CRXJS or WXT (web extension tooling)
-- **UI Framework:** React + Tailwind (options page, popup)
-- **Testing:** Vitest + Playwright (e2e)
-- **Target Browsers:** Chrome (Manifest V3), Firefox (Manifest V3)
+A persistent "Report a Bug" item appears at the bottom of the Slingshot context menu, separated from destinations by a divider. When clicked:
 
-## Milestones
+1. Automatically captures context:
+   - Current page URL
+   - Extension version
+   - Browser name + version
+   - OS platform
+   - List of configured destination types (no secrets/URLs)
+   - Selected text (if any, truncated to 200 chars) as reproduction context
+2. Opens a new tab to GitHub Issues with a pre-filled issue template:
+   - URL: `https://github.com/rookdynamics/SLINGSHOT/issues/new`
+   - Query params populate title prefix `[Bug Report]` and body with captured context
+   - User adds their description of the problem above the auto-captured block
+3. No data is sent anywhere automatically — the user reviews and submits the GitHub issue themselves
 
-### v0.1 — MVP
-- [ ] Project scaffolding (Vite + WXT + TypeScript)
-- [ ] Manifest V3 setup for Chrome
-- [ ] Context menu with "Slingshot" parent
-- [ ] Single webhook destination (hardcoded for testing)
-- [ ] Selected text capture + basic payload
-
-### v0.2 — Settings & Multi-Destination
-- [ ] Options page with destination CRUD
-- [ ] Multiple destinations in context menu
-- [ ] Webhook + REST API transport handlers
-- [ ] chrome.storage.sync for config persistence
-
-### v0.3 — Polish & Additional Transports
-- [ ] Clipboard+ transport
-- [ ] Email (mailto:) transport
-- [ ] Dispatch history in popup
-- [ ] Toast notifications on dispatch
-- [ ] Test button in settings
-
-### v0.4 — Firefox & Native Messaging
-- [ ] Firefox Manifest V3 compatibility
-- [ ] Native messaging host for local file destinations
-- [ ] Import/export destinations
-
-### v1.0 — Release
-- [ ] Chrome Web Store submission
-- [ ] Firefox Add-ons submission
-- [ ] Documentation site / README
-- [ ] MIT License
-
-## Competitive Landscape
-
-| Extension | Multi-destination | Transport types | Context menu | Open source |
-|-----------|------------------|-----------------|--------------|-------------|
-| Send To WebHook | Yes | Webhook only | Yes | Yes |
-| Webhook Manager | Yes | Webhook only | Yes | Yes |
-| RightClickGPT | No (ChatGPT only) | Browser tab | Yes | Yes |
-| Web Highlights | No | Local/cloud save | No | No |
-| **SLINGSHOT** | **Yes** | **Multiple (pluggable)** | **Yes** | **Yes (MIT)** |
+This keeps bug reporting frictionless (two clicks from any page) while giving us structured context on every report.
 
 ## Design Decisions (Resolved)
 

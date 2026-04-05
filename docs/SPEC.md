@@ -174,10 +174,26 @@ Each destination is a card/row with:
 | Web Highlights | No | Local/cloud save | No | No |
 | **SLINGSHOT** | **Yes** | **Multiple (pluggable)** | **Yes** | **Yes (MIT)** |
 
-## Open Questions
+## Design Decisions (Resolved)
 
-1. Should destinations support **conditional routing** (e.g., only show destination X on certain domains)?
-2. Should we support **batch dispatch** (send to multiple destinations at once)?
-3. Should the payload support **transformations** (regex extract, trim, format)?
-4. Native messaging host: bundle with extension or separate installer?
-5. Should there be a **community destination registry** (share destination configs)?
+### 1. Conditional Routing — NO
+All destinations are always visible in the context menu regardless of the current page. Keep it simple. Users can mentally skip destinations that aren't relevant. Revisit only if user feedback demands it.
+
+### 2. Multi-Destination Dispatch — YES (multi-select in context menu)
+Users can send to multiple destinations in a single action. Implementation: context menu items get checkboxes or a "Send to selected" flow. Exact UX TBD — options include:
+- Hold modifier key (Ctrl/Cmd) + click to queue multiple, release to fire
+- Submenu with checkboxes and a "Send" button at the bottom
+- "Send to All" option as a built-in destination
+
+### 3. Payload Transformations — TIERED
+**Simple mode (default):** Basic transforms applied automatically — trim whitespace, strip HTML tags, normalize line breaks. Always on, no config needed.
+
+**Advanced mode (opt-in per destination):** Per-destination transform pipeline with steps like:
+- Regex extract (capture group)
+- Find/replace
+- Case transform (upper, lower, title)
+- Markdown → plain text
+- Truncate to N characters
+- Prepend/append static text
+
+Advanced mode is exposed as an expandable "Transforms" section in the destination config card. Hidden by default to keep the simple path clean.

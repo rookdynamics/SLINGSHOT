@@ -145,6 +145,150 @@ A persistent "Report a Bug" item appears at the bottom of the Slingshot context 
 
 This keeps bug reporting frictionless (two clicks from any page) while giving us structured context on every report.
 
+## IOC Lookup (Right-Click)
+
+SLINGSHOT includes a built-in **Lookup** feature for cybersecurity workflows. When the user highlights an indicator of compromise (IP, domain, URL, hash, email), a "Lookup" option appears in the context menu. Results are displayed in an in-page overlay popup without leaving the current tab.
+
+### Context Menu Position
+
+```
+Slingshot →
+  ☐ My Webhook
+  ☐ Slack Channel
+  ───────────
+  🔍 Lookup
+  ───────────
+  Report a Bug
+```
+
+### IOC Auto-Detection
+
+The extension auto-detects the IOC type from the highlighted text using regex:
+
+| IOC Type | Detection Pattern | Example |
+|----------|-------------------|---------|
+| IPv4 | `\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b` | `1.2.3.4` |
+| IPv6 | Standard IPv6 regex | `2001:db8::1` |
+| Domain | FQDN pattern (no protocol) | `evil.com` |
+| URL | `https?://...` | `https://evil.com/payload` |
+| File Hash | Hex string, length-based (32=MD5, 40=SHA1, 64=SHA256) | `d41d8cd9...` |
+| Email | Standard email regex | `badguy@evil.com` |
+
+If the selected text contains multiple IOC types, the extension uses the most specific match (URL > domain > IP).
+
+### Built-In Lookup Sources
+
+These ship with the extension and require only an API key in settings:
+
+| Source | IOC Types | API Key Required | Free Tier |
+|--------|-----------|------------------|-----------|
+| WHOIS/RDAP | Domain, IP | No | Unlimited |
+| VirusTotal | IP, Domain, URL, Hash | Yes | 4 req/min |
+| AbuseIPDB | IP | Yes | 1000/day |
+| Shodan | IP | Yes | Limited |
+| URLScan.io | URL, Domain | Yes | 1000/day |
+| MalwareBazaar | Hash | No | Unlimited |
+| IPInfo | IP | Optional | 50k/month |
+
+### Custom Lookup Sources
+
+Users can configure **custom lookup sources** in settings to query any API — XSOAR, MISP, TheHive, internal threat intel platforms, or any REST endpoint.
+
+#### Custom Source Configuration
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| **Name** | Display name in results | `XSOAR Lookup` |
+| **IOC Types** | Which IOC types this source handles | `[ip, domain, hash]` |
+| **URL Template** | API endpoint with `{{indicator}}` placeholder | `https://xsoar.corp.com/api/indicators/search?value={{indicator}}` |
+| **Method** | HTTP method | `GET` or `POST` |
+| **Headers** | Custom headers (auth, content-type) | `Authorization: <API_KEY>`, `Content-Type: application/json` |
+| **Body Template** | Request body for POST (with `{{indicator}}`, `{{type}}` placeholders) | `{"indicator": "{{indicator}}", "type": "{{type}}"}` |
+| **Auth Type** | Authentication method | None / Bearer / Basic / API Key (header) / API Key (query param) |
+| **Response Mapping** | JSONPath or dot-notation mappings to extract display fields from the response | See below |
+
+#### Response Mapping
+
+Since every API returns data differently, custom sources use a **response mapping** to tell the extension which fields to display. Each mapping is a key-value pair: display label → JSONPath into the response.
+
+Example for an XSOAR-style response:
+
+```json
+{
+  "mappings": {
+    "Verdict": "$.data.verdict",
+    "Score": "$.data.score",
+    "Source": "$.data.source",
+    "Last Seen": "$.data.lastSeen",
+    "Tags": "$.data.tags",
+    "Description": "$.data.description"
+  }
+}
+```
+
+Example for a custom threat intel API:
+
+```json
+{
+  "mappings": {
+    "Risk Score": "$.risk.score",
+    "Category": "$.risk.category",
+    "First Seen": "$.timeline.first_seen",
+    "Country": "$.geo.country",
+    "ASN": "$.network.asn",
+    "Raw": "$"
+  }
+}
+```
+
+The special mapping value `"$"` dumps the full raw JSON response into a collapsible section for debugging or when you're still figuring out the response structure.
+
+#### Custom Source Testing
+
+Each custom source has a **Test** button in settings. Enter a sample indicator, fire the request, and see:
+- HTTP status code
+- Raw response body (collapsible)
+- Parsed fields based on the response mapping
+- Any errors (auth failure, timeout, mapping miss)
+
+### Lookup Results Popup
+
+Results display in an **in-page overlay** (not a new tab) anchored near the highlighted text:
+
+```
+┌─────────────────────────────────────────┐
+│ 🔍 Lookup: 1.2.3.4 (IPv4)        [✕]  │
+├─────────────────────────────────────────┤
+│ ▼ WHOIS/RDAP                           │
+│   ASN: AS13335 (Cloudflare)             │
+│   Country: US                           │
+│   Registrar: ARIN                       │
+│                                         │
+│ ▼ VirusTotal                            │
+│   Detections: 3/89                      │
+│   Reputation: -15                       │
+│   Last Analysis: 2026-04-03             │
+│                                         │
+│ ▼ XSOAR Lookup (custom)                │
+│   Verdict: Suspicious                   │
+│   Score: 72                             │
+│   Tags: [C2, proxy]                     │
+│                                         │
+├─────────────────────────────────────────┤
+│ [Copy as Defanged]  [Send to →]         │
+└─────────────────────────────────────────┘
+```
+
+Key behaviors:
+- Sources are queried in parallel; results stream in as they return
+- Failed sources show error inline (timeout, auth error, rate limit)
+- Collapsible sections per source
+- **"Copy as Defanged"** copies the indicator in defanged format
+- **"Send to →"** dispatches the enriched lookup result (indicator + all source results as structured text) to a Slingshot destination — closing the loop with core functionality
+- Popup is dismissible with Escape or clicking outside
+- Results are cached for the session (same indicator won't re-query within 5 minutes)
+
+
 ## Design Decisions (Resolved)
 
 ### 1. Conditional Routing — NO

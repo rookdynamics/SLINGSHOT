@@ -166,5 +166,27 @@ Users can send to multiple destinations in a single action. Implementation: cont
 - Markdown → plain text
 - Truncate to N characters
 - Prepend/append static text
+- **Defang IOCs** — "Make Safe" for cybersecurity/threat intel contexts
+
+### Defang IOCs Transform ("Make Safe")
+
+A built-in transform specifically for cybersecurity and threat intelligence workflows. When enabled on a destination, all indicators of compromise (IOCs) in the selected text are automatically defanged before dispatch:
+
+| IOC Type | Original | Defanged |
+|----------|----------|----------|
+| IPv4 Address | `1.2.3.4` | `1.2.3[.]4` |
+| Domain | `evil.com` | `evil[.]com` |
+| Email | `badguy@evil.com` | `badguy@evil[.]com` |
+| URL | `https://evil.com/payload` | `hxxps://evil[.]com/payload` |
+| IPv6 Address | `2001:db8::1` | `2001:db8[:]1` |
+
+Implementation notes:
+- Regex-based detection and replacement for each IOC type
+- Handles multiple IOCs in a single text block
+- Preserves surrounding text and formatting
+- Available in both simple mode (as a toggle: "Defang IOCs") and advanced mode (as a pipeline step)
+- This is a **one-way transform** — there is no "refang" option in the extension since the purpose is safe sharing
+
+This is particularly useful for destinations like Slack, Discord, or email where you want to share indicators without them becoming clickable/resolvable links.
 
 Advanced mode is exposed as an expandable "Transforms" section in the destination config card. Hidden by default to keep the simple path clean.

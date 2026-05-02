@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# WXT generated
+.wxt/
+.output/
+build/
+
+# Build artifacts
+*.zip
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Env
+.env
+.env.local
+.env.*.local

@@ -29,6 +29,29 @@ If no type-checker is configured, state that explicitly instead of claiming succ
 
 8. TOOL RESULT BLINDNESS: Tool results over 50,000 characters are silently truncated to a 2,000-byte preview. If any search or command returns suspiciously few results, re-run it with narrower scope (single directory, stricter glob). State when you suspect truncation occurred.
 
+## Testing & Verification
+
+11. PER-PHASE TEST DOCUMENT (MANDATORY)
+    Every phase must produce a test document at `docs/tests/PHASE-XX-tests.md`
+    alongside the code. The doc has exactly two sections, in this order:
+
+    1. **Manual Test Checklist** — GitHub-flavored markdown checkboxes (`- [ ]`)
+       that the human owner can run through to verify the phase works as
+       intended. Cover every observable behavior introduced or changed in this
+       phase: UI flows, button states, persistence after refresh, API
+       contracts, error paths. Skip anything fully covered by automated tests.
+       Group by area (e.g. UI, API, Edge cases).
+
+    2. **Claude Desktop Prompt** — a self-contained, copy-pasteable prompt
+       that drives a Claude Desktop session to perform the same verification
+       autonomously where possible (filesystem reads, build/test execution,
+       static checks). Anything Claude Desktop genuinely can't do (e.g. visual
+       UI inspection in a real browser) must be called out explicitly so the
+       human knows what's left for them.
+
+    The phase is not complete until this document exists, even if all code
+    acceptance criteria are met.
+
 ## Edit Safety
 
 9.  EDIT INTEGRITY: Before EVERY file edit, re-read the file. After editing, read it again to confirm the change applied correctly. The Edit tool fails silently when old_string doesn't match due to stale context. Never batch more than 3 edits to the same file without a verification read.
